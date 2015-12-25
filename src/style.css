@@ -1,0 +1,46 @@
+html,body
+{
+    height: 100%;
+    width: 100%;
+    margin: 0px;
+    padding: 0px;
+    overflow:hidden;
+}
+
+body
+{
+    background-color: #000000;
+}
+
+#main
+{
+    min-height: 100%;
+    min-width: 100%;
+}
+
+#cookieRemark
+{
+    visibility: hidden;
+    background: #A6E22E;
+    padding:    0px;
+    height:     0px;
+}
+
+#cookieRemark a:link{
+  background:  #86C21E;
+  font-weight: bold;
+  margin:      4px;
+  padding:     4px;
+}
+
+div#ads
+{
+  position:     absolute;
+  top:          3px;
+  left:         320px;
+  z-index:      9999;
+  width:        728px;
+  height:       90px;
+  display:      block;
+  background-color: #FFFFFF;
+}
