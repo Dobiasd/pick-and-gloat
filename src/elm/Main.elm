@@ -6,6 +6,7 @@ import Graphics.Collage exposing (..)
 import Graphics.Element exposing (..)
 import Graphics.Input
 import Random
+import Text
 import Time
 import Touch
 
@@ -31,22 +32,7 @@ allPossibleColors = [ Yellow, Blue, Orange, Green, Red ]
 allPossibleShapes : List Shape
 allPossibleShapes = [ Circle, X, Square, Triangle, Star ]
 
-{-
-icons : List Icon
-icons = [
-    Icon Yellow Circle
-  , Icon Blue X
-  , Icon Orange Square
-  , Icon Green Triangle
-  , Icon Red Star
-  ]
--}
-
---type PauseState = {
-    --mal richtig ueberlegen, was die states sind
-  --}
-
-type State = Intro | Pause Bool Bool | Running
+type State = Intro | Pause Bool Bool Int | Running | Done
 
 type alias Model = {
     state : State
@@ -148,40 +134,64 @@ introModel = {
 
 -- UPDATE
 
-type Action = Start | P1Tab Icon | P2Tab Icon | P1Ready | P2Ready
+type Action = IntroClose | P1Tab Int | P2Tab Int | P1Ready | P2Ready
 
 type alias Input = { action : Action, seed : Random.Seed }
 
 update : Input -> Model -> Model
 update {action, seed} model =
   case action of
-    Start ->
+    IntroClose ->
       let
         (newIcons, seed') = createNewIcons seed
         (newIcon, newHints, _) = newIconWithHints newIcons seed'
       in
-        { state = Running
+        { state = Pause False False 0
         , icons = newIcons
         , icon = newIcon
         , hintIcons = newHints
-        , points1 = fst (Random.generate(Random.int 12 1000) seed)
-        , points2 = 12 } -- todo: random icon
-    P1Tab icon ->
-      model
-    P2Tab icon ->
-      model
+        , points1 = 0
+        , points2 = 0 }
+    P1Tab iconNum ->
+      let
+        correct = nthElement iconNum model.icons == model.icon
+        pointTo = if correct then 1 else 2
+      in
+        { model | state = Pause False False pointTo}
+    P2Tab iconNum ->
+      let
+        correct = nthElement iconNum model.icons == model.icon
+        pointTo = if correct then 2 else 1
+      in
+        { model | state = Pause False False pointTo}
     P1Ready ->
       case model.state of
-        Pause _ p2Ready -> { model | state = Pause True p2Ready }
+        Pause _ p2Ready lastPointTo ->
+          if p2Ready then
+            { model | state = Running }
+          else
+            { model | state = Pause True False lastPointTo }
         _ -> model
     P2Ready ->
       case model.state of
-        Pause p1Ready _ -> { model | state = Pause p1Ready True }
+        Pause p1Ready _ lastPointTo ->
+          if p1Ready then
+            { model | state = Running }
+          else
+            { model | state = Pause False True lastPointTo }
         _ -> model
-    -- todo: running wenn both players are ready
 
-iconClick : Signal.Mailbox (Int, Int)
-iconClick = Signal.mailbox (0, 0)
+gameIconClick : Signal.Mailbox (Int, Int)
+gameIconClick = Signal.mailbox (0, 0)
+
+p1ReadyIconClick : Signal.Mailbox ()
+p1ReadyIconClick = Signal.mailbox ()
+
+p2ReadyIconClick : Signal.Mailbox ()
+p2ReadyIconClick = Signal.mailbox ()
+
+introCloseClick : Signal.Mailbox ()
+introCloseClick = Signal.mailbox ()
 
 -- VIEW
 
@@ -190,13 +200,76 @@ iconClick = Signal.mailbox (0, 0)
 
 view : Model -> Form
 view model =
+  case model.state of
+    Intro -> viewIntro model
+    Pause _ _ _ -> viewPause model
+    Running -> viewRunning model
+    Done -> viewDone model
+
+viewIntro : Model -> Form
+viewIntro model =
+  group [
+      rect 800 200
+      |> filled Color.lightGray
+    ,
+      "lorem ipsum\n\n\nTab to start."
+      |> Text.fromString
+      |> Text.bold
+      |> Text.color Color.darkGray
+      |> leftAligned
+      |> toForm
+  ]
+  |> singletonList
+  |> collage 800 200
+  |> Graphics.Input.clickable
+      (Signal.message introCloseClick.address ())
+  |> toForm
+
+viewPause : Model -> Form
+viewPause model =
+  let
+    (p1Ready, p2Ready, lastPointTo) =
+    case model.state of
+      Pause p1Ready p2Ready lastPointTo -> (p1Ready, p2Ready, lastPointTo)
+      otherwise -> Debug.crash "viewPause"
+    viewReadyButton mailbox col =
+      rect 100 100 |> filled col
+          |> singletonList
+          |> collage 100 100
+          |> Graphics.Input.clickable
+            (Signal.message mailbox.address ())
+          |> toForm
+    readyIcon1 =
+      viewReadyButton p1ReadyIconClick
+        (if p1Ready then Color.darkCharcoal else Color.green)
+      |> rotate (degrees  90)
+    readyIcon2 =
+      viewReadyButton p2ReadyIconClick
+        (if p2Ready then Color.darkCharcoal else Color.green)
+      |> rotate (degrees -90)
+  in
+    viewGameIcons model ++
+    [ readyIcon1 |> moveX  300
+    , readyIcon2 |> moveX -300 ]
+    |> group
+
+viewRunning : Model -> Form
+viewRunning model =
   let
     forms =
       [ show model |> toForm, drawHints model.hintIcons ] ++
-      List.map (move (-1050, 0)) (drawIcons model.icons 0) ++
-      List.map (move ( 1050, 0)) (drawIcons model.icons 1)
+      viewGameIcons model
   in
     forms |> group
+
+viewGameIcons : Model -> List Form
+viewGameIcons model =
+      List.map (move (-1050, 0)) (drawIcons model.icons 0) ++
+      List.map (move ( 1050, 0)) (drawIcons model.icons 1)
+
+viewDone : Model -> Form
+viewDone model =
+  show model |> toForm
 
 drawHints : (Icon, Icon) -> Form
 drawHints (hint0, hint1) =
@@ -224,7 +297,7 @@ drawClickableIcon icon playerNum iconNum =
   in
     elem
     |> Graphics.Input.clickable
-      (Signal.message iconClick.address (playerNum, iconNum))
+      (Signal.message gameIconClick.address (playerNum, iconNum))
     |> toForm
 
 drawIconBorder : Form
@@ -319,8 +392,32 @@ drawStar color =
   in
     filled color (Graphics.Collage.polygon points)
 
-actionSig : Signal Action
-actionSig = Signal.sampleOn iconClick.signal (Signal.constant Start)
+actionSigReady1Click : Signal Action
+actionSigReady1Click = Signal.sampleOn p1ReadyIconClick.signal (Signal.constant P1Ready)
+
+actionSigReady2Click : Signal Action
+actionSigReady2Click = Signal.sampleOn p2ReadyIconClick.signal (Signal.constant P2Ready)
+
+actionSigIntroCloseClick : Signal Action
+actionSigIntroCloseClick = Signal.sampleOn introCloseClick.signal (Signal.constant <| IntroClose)
+
+actionSigIconClick : Signal Action
+actionSigIconClick =
+  let
+    f (playerNum, iconNum ) =
+      if playerNum == 0 then
+        P1Tab iconNum
+      else
+        P2Tab iconNum
+  in
+    Signal.map f gameIconClick.signal
+
+actionSig =
+  Signal.mergeMany [
+      actionSigIntroCloseClick
+    , actionSigReady1Click
+    , actionSigReady2Click
+    , actionSigIconClick ]
 
 input : Signal Input
 input = Signal.map2 Input actionSig randomSeed
@@ -338,15 +435,26 @@ gameScale : (Int,Int) -> (Float,Float) -> Float
 gameScale (winW, winH) (gameW,gameH) =
   min (toFloat winW / gameW) (toFloat winH / gameH)
 
+singletonList : a -> List a
+singletonList x = [x]
+
 {-| Draw game maximized into the window. -}
 displayFullScreen : (Int,Int) -> Model -> Element
-displayFullScreen (w,h) game =
+displayFullScreen (w,hWithoutAds) game =
   let
+    addHeight = 90
+    h = hWithoutAds - addHeight
     factor = gameScale (w,h) (gameWidth,gameHeight)
     (centerX, centerY) = (gameWidth // 2, gameHeight // 2)
   in
-    collage w h [ rect (toFloat w) (toFloat h) |> filled Color.darkCharcoal
-                , view game |> scale factor ]
+    flow down [
+      rect (toFloat w) (toFloat addHeight)
+        |> filled Color.darkCharcoal
+        |> singletonList
+        |> collage w addHeight
+      , collage w h [ rect (toFloat w) (toFloat h)
+         |> filled Color.darkCharcoal
+         , view game |> scale factor ] ]
 
 main = Signal.map2 displayFullScreen windowDimensions gameState
 

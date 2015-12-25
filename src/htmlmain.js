@@ -30,11 +30,10 @@ function CheckCookieConsent() {
   if (lsTest() === true) {
     try {
       cookieConsent = localStorage.getItem("cookieConsent");
-      if (cookieConsent == "true"){
+      if (cookieConsent == "true") {
         HideCookieRemark();
       }
-      else
-      {
+      else {
         ShowCookieRemark();
       }
     } catch(e) {
@@ -63,18 +62,16 @@ function SetAdsXPos(x) {
 }
 
 function GetWindowWidth() {
-  var win = $(this); //this = window
-  return win.width();
+  return $(this).width();
 }
 
 function GetWindowHeight() {
-  var win = $(this); //this = window
-  return win.height();
+  return $(this).height();
 }
 
 function CenterAds() {
-  var logoWidth = 308;
-  x = Math.max((logoWidth + 8), ((GetWindowWidth() - 728) / 2));
+  var remainingWidth = Math.max(0, GetWindowWidth() - 728)
+  x = remainingWidth / 2;
   SetAdsXPos(x);
 }
 
