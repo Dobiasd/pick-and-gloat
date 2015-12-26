@@ -438,6 +438,17 @@ gameScale (winW, winH) (gameW,gameH) =
 singletonList : a -> List a
 singletonList x = [x]
 
+toColoredSizedText : Color.Color -> Float -> String -> Element
+toColoredSizedText col s = Text.fromString >> Text.height s >> Text.color col
+                           >> leftAligned
+
+viewCopyright : Int -> Form
+viewCopyright winHeight =
+  toColoredSizedText Color.charcoal 12
+    "Copyright © 2016 Tobias Hermann. All rights reserved."
+  |> toForm
+  |> moveY ((toFloat -winHeight / 2) + 24)
+
 {-| Draw game maximized into the window. -}
 displayFullScreen : (Int,Int) -> Model -> Element
 displayFullScreen (w,hWithoutAds) game =
@@ -454,8 +465,14 @@ displayFullScreen (w,hWithoutAds) game =
         |> collage w addHeight
       , collage w h [ rect (toFloat w) (toFloat h)
          |> filled Color.darkCharcoal
+         , viewCopyright h
          , view game |> scale factor ] ]
 
 main = Signal.map2 displayFullScreen windowDimensions gameState
 
 -- todo: up to 9 points
+-- todo: teile nicht rotieren, immer einfach aufrecht
+-- todo: besserer name fuers spiel
+-- todo: als android-app: http://developer.android.com/guide/webapps/index.html
+-- todo: hard mode mit mehr dingern
+-- todo: andere shapes verwenden, damit es nicht zu gleich ist
