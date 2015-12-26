@@ -19,7 +19,9 @@ port windowDimensions = Signal.map2 (\x y -> (x, y)) windowWidth windowHeight
 -- MODEL
 
 type Color = Yellow | Blue | Orange | Green | Red
+--             | Cyan | Magenta | Brown
 type Shape = Circle | X | Square | Triangle | Star
+--             | Pentagon | Crescent | Heart | Arrow | Checkmark
 
 type alias Icon = {
     color : Color
@@ -32,7 +34,9 @@ allPossibleColors = [ Yellow, Blue, Orange, Green, Red ]
 allPossibleShapes : List Shape
 allPossibleShapes = [ Circle, X, Square, Triangle, Star ]
 
-type State = Intro | Pause Bool Bool Int | Running | Done
+-- Pause p1ready p2ready lastPointTo whoTapped whatWasTapped
+-- Done p1ready p2ready lastPointTo whoTapped whatWasTapped
+type State = Intro | Pause Bool Bool Int Int Int | Running | Done Bool Bool Int Int Int
 
 type alias Model = {
     state : State
@@ -140,46 +144,89 @@ type alias Input = { action : Action, seed : Random.Seed }
 
 update : Input -> Model -> Model
 update {action, seed} model =
-  case action of
-    IntroClose ->
-      let
-        (newIcons, seed') = createNewIcons seed
-        (newIcon, newHints, _) = newIconWithHints newIcons seed'
-      in
-        { state = Pause False False 0
-        , icons = newIcons
-        , icon = newIcon
-        , hintIcons = newHints
+  let
+    (newIcon, newHints, seed') = newIconWithHints model.icons seed
+    (brandNewIcons, seed'') = createNewIcons seed'
+    (brandNewIcon, brandNewHints, _) = newIconWithHints brandNewIcons seed''
+  in
+    case action of
+      IntroClose ->
+        { state = Pause False False 0 0 0
+        , icons = brandNewIcons
+        , icon = brandNewIcon
+        , hintIcons = brandNewHints
         , points1 = 0
         , points2 = 0 }
-    P1Tab iconNum ->
-      let
-        correct = nthElement iconNum model.icons == model.icon
-        pointTo = if correct then 1 else 2
-      in
-        { model | state = Pause False False pointTo}
-    P2Tab iconNum ->
-      let
-        correct = nthElement iconNum model.icons == model.icon
-        pointTo = if correct then 2 else 1
-      in
-        { model | state = Pause False False pointTo}
-    P1Ready ->
-      case model.state of
-        Pause _ p2Ready lastPointTo ->
-          if p2Ready then
-            { model | state = Running }
-          else
-            { model | state = Pause True False lastPointTo }
-        _ -> model
-    P2Ready ->
-      case model.state of
-        Pause p1Ready _ lastPointTo ->
-          if p1Ready then
-            { model | state = Running }
-          else
-            { model | state = Pause False True lastPointTo }
-        _ -> model
+      P1Tab iconNum ->
+        let
+          correct = nthElement iconNum model.icons == model.icon
+          pointTo = if correct then 1 else 2
+          points1' = model.points1 + (if correct then 1 else 0)
+          points2' = model.points2 + (if correct then 0 else 1)
+          state' = if points1' >= maxPoints || points2' >= maxPoints
+            then Done False False pointTo 1 iconNum
+            else
+              if pointTo == 1 then Pause False True pointTo 1 iconNum
+                else Pause True False pointTo 1 iconNum
+        in
+          { model | state = state'
+                  , points1 = points1'
+                  , points2 = points2' }
+      P2Tab iconNum ->
+        let
+          correct = nthElement iconNum model.icons == model.icon
+          pointTo = if correct then 2 else 1
+          points1' = model.points1 + (if correct then 0 else 1)
+          points2' = model.points2 + (if correct then 1 else 0)
+          state' = if points1' >= maxPoints || points2' >= maxPoints
+            then Done False False pointTo 2 iconNum
+            else
+              if pointTo == 1 then Pause False True pointTo 2 iconNum
+                else Pause True False pointTo 2 iconNum
+        in
+          { model | state = state'
+                  , points1 = points1'
+                  , points2 = points2' }
+      P1Ready ->
+        case model.state of
+          Pause _ p2Ready lastPointTo whoTapped whatWasTapped ->
+            if p2Ready then
+              { model | state = Running
+              , icon = newIcon
+              , hintIcons = newHints }
+            else
+              { model | state = Pause True False lastPointTo whoTapped whatWasTapped }
+          Done _ p2Ready lastPointTo whoTapped whatWasTapped ->
+            if p2Ready then
+              { model | state = Running
+              , icons = brandNewIcons
+              , icon = brandNewIcon
+              , points1 = 0
+              , points2 = 0
+              , hintIcons = brandNewHints }
+            else
+              { model | state = Done True False lastPointTo whoTapped whatWasTapped }
+          _ -> model
+      P2Ready ->
+        case model.state of
+          Pause p1Ready _ lastPointTo whoTapped whatWasTapped ->
+            if p1Ready then
+              { model | state = Running
+              , icon = newIcon
+              , hintIcons = newHints }
+            else
+              { model | state = Pause False True lastPointTo whoTapped whatWasTapped }
+          Done p1Ready _ lastPointTo whoTapped whatWasTapped ->
+            if p1Ready then
+              { model | state = Running
+              , icons = brandNewIcons
+              , icon = brandNewIcon
+              , points1 = 0
+              , points2 = 0
+              , hintIcons = brandNewHints }
+            else
+              { model | state = Done False True lastPointTo whoTapped whatWasTapped }
+          _ -> model
 
 gameIconClick : Signal.Mailbox (Int, Int)
 gameIconClick = Signal.mailbox (0, 0)
@@ -202,74 +249,120 @@ view : Model -> Form
 view model =
   case model.state of
     Intro -> viewIntro model
-    Pause _ _ _ -> viewPause model
+    Pause _ _ _ _ _ -> viewPause model
     Running -> viewRunning model
-    Done -> viewDone model
+    Done _ _ _ _ _ -> viewDone model
 
 viewIntro : Model -> Form
 viewIntro model =
   group [
-      rect 800 200
+      rect 1200 280
       |> filled Color.lightGray
     ,
-      "lorem ipsum\n\n\nTab to start."
-      |> Text.fromString
-      |> Text.bold
-      |> Text.color Color.darkGray
-      |> leftAligned
-      |> toForm
+      "Tab to start.\n\nCompete with a friend at one smartphone/tablet face to face.\nYou will be shown two hint icons in the middle that exclude colors and shapes.\nTab the one icon not excluded by the hints on your side.\nThe quicker player scores."
+      |> toColoredSizedText Color.darkCharcoal 32
   ]
   |> singletonList
-  |> collage 800 200
+  |> collage 1200 280
   |> Graphics.Input.clickable
       (Signal.message introCloseClick.address ())
   |> toForm
 
-viewPause : Model -> Form
-viewPause model =
+viewPauseOrDone : Model -> Form
+viewPauseOrDone model =
   let
-    (p1Ready, p2Ready, lastPointTo) =
+    (isDone, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped) =
     case model.state of
-      Pause p1Ready p2Ready lastPointTo -> (p1Ready, p2Ready, lastPointTo)
-      otherwise -> Debug.crash "viewPause"
+      Pause p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (False, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
+      Done p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (True, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
+      otherwise -> Debug.crash "viewPauseOrDone"
     viewReadyButton mailbox col =
-      rect 100 100 |> filled col
-          |> singletonList
-          |> collage 100 100
+      rect 400 100 |> filled col
+          |> \x -> [x, toColoredSizedText Color.darkCharcoal 48 "Tab when ready"]
+          |> collage 400 100
           |> Graphics.Input.clickable
             (Signal.message mailbox.address ())
           |> toForm
     readyIcon1 =
       viewReadyButton p1ReadyIconClick
-        (if p1Ready then Color.darkCharcoal else Color.green)
+        (if p1Ready then Color.darkCharcoal else Color.yellow)
       |> rotate (degrees  90)
     readyIcon2 =
       viewReadyButton p2ReadyIconClick
-        (if p2Ready then Color.darkCharcoal else Color.green)
+        (if p2Ready then Color.darkCharcoal else Color.yellow)
       |> rotate (degrees -90)
+    tapWasCorrect = lastPointTo == whoTapped
+    tabIconBorderColor = if tapWasCorrect then Color.green else Color.red
+    tapBorder = drawIconBorder tabIconBorderColor
+      |> moveX (gameIconOffsetX * (if whoTapped == 2 then 1 else -1))
+      |> moveY (iconPosY whatWasTapped)
+    (winText, looseText) =
+      if isDone then
+        ( toColoredSizedText Color.green 204 "You win!"
+        , toColoredSizedText Color.red 204 "You loose!" )
+      else
+        ( toColoredSizedText Color.green 96 "You score!"
+        , toColoredSizedText Color.red 96 "" )
+    (p1TextRaw, p2TextRaw) = if lastPointTo == 1 then (winText, looseText) else (looseText, winText)
+    p1Text = p1TextRaw |> rotate (degrees -90) |> moveX -500
+    p2Text = p2TextRaw |> rotate (degrees  90) |> moveX  500
   in
     viewGameIcons model ++
-    [ readyIcon1 |> moveX  300
-    , readyIcon2 |> moveX -300 ]
+    [ if whoTapped < 1 then dummyForm else tapBorder
+    , viewPoints model
+    , if whoTapped < 1 then dummyForm else drawHints model.hintIcons
+    , if whoTapped < 1 then dummyForm else p1Text
+    , if whoTapped < 1 then dummyForm else p2Text
+    , readyIcon1 |> moveX  740
+    , readyIcon2 |> moveX -740 ]
     |> group
+
+dummyForm : Form
+dummyForm = rect 0 0 |> filled Color.darkCharcoal
+
+maxPoints : Int
+maxPoints = 5
+
+viewPoints : Model -> Form
+viewPoints model =
+  let
+    circleDist = 64
+    viewPointRow score =
+      List.map (\n -> Graphics.Collage.circle 24
+            |> filled
+              (if n <= score then Color.lightGreen else Color.darkGray)
+            |> moveY ((toFloat (-maxPoints // 2) * circleDist) + toFloat (n - 1) * circleDist))
+        [1..maxPoints]
+    row1 = viewPointRow model.points1 |> List.map (rotate (degrees -90) >> moveX -286)
+    row2 = viewPointRow model.points2 |> List.map (rotate (degrees  90) >> moveX  286)
+  in
+    row1 ++ row2 |> group
 
 viewRunning : Model -> Form
 viewRunning model =
   let
     forms =
-      [ show model |> toForm, drawHints model.hintIcons ] ++
+      [ drawHints model.hintIcons
+      , viewPoints model ] ++
       viewGameIcons model
   in
     forms |> group
 
+gameIconOffsetX : Float
+gameIconOffsetX = 1050
+
 viewGameIcons : Model -> List Form
 viewGameIcons model =
-      List.map (move (-1050, 0)) (drawIcons model.icons 0) ++
-      List.map (move ( 1050, 0)) (drawIcons model.icons 1)
+      List.map (moveX -gameIconOffsetX) (drawIcons model.icons 0) ++
+      List.map (moveX  gameIconOffsetX) (drawIcons model.icons 1)
 
 viewDone : Model -> Form
 viewDone model =
-  show model |> toForm
+  viewPauseOrDone model
+
+viewPause : Model -> Form
+viewPause model =
+  viewPauseOrDone model
 
 drawHints : (Icon, Icon) -> Form
 drawHints (hint0, hint1) =
@@ -278,11 +371,14 @@ drawHints (hint0, hint1) =
     , drawIcon hint1 |> move (0, 250)
   ]
 
+iconPosY : Int -> Float
+iconPosY n = 460 - 230 * (toFloat n)
+
 drawIcons : List Icon -> Int -> List Form
 drawIcons icons playerNum =
   let
     nthIcon n = drawClickableIcon (nthElement n icons) playerNum n
-                |> move (0, 460 - 230 * (toFloat n))
+                |> moveY (iconPosY n)
   in
     List.map nthIcon [0..4]
 
@@ -300,18 +396,18 @@ drawClickableIcon icon playerNum iconNum =
       (Signal.message gameIconClick.address (playerNum, iconNum))
     |> toForm
 
-drawIconBorder : Form
-drawIconBorder =
+drawIconBorder : Color.Color -> Form
+drawIconBorder color =
   let
     width = 8
-    lsGray = solid Color.charcoal
+    lsGray = solid color
     grayLSWide = { lsGray | width = width, join = Smooth, cap = Round }
   in
     rect (toFloat iconSize) (toFloat iconSize) |> outlined grayLSWide
 
 drawIcon : Icon -> Form
 drawIcon {color, shape} =
-  group [ drawIconBorder
+  group [ drawIconBorder Color.charcoal
         , toRGB color |> toDrawFunction shape ]
 
 toRGB : Color -> Color.Color
@@ -437,15 +533,14 @@ gameScale (winW, winH) (gameW,gameH) =
 singletonList : a -> List a
 singletonList x = [x]
 
-toColoredSizedText : Color.Color -> Float -> String -> Element
+toColoredSizedText : Color.Color -> Float -> String -> Form
 toColoredSizedText col s = Text.fromString >> Text.height s >> Text.color col
-                           >> leftAligned
+                           >> leftAligned >> toForm
 
 viewCopyright : Int -> Form
 viewCopyright winHeight =
   toColoredSizedText Color.charcoal 14
     "Copyright © 2016 Tobias Hermann. All rights reserved."
-  |> toForm
   |> moveY ((toFloat -winHeight / 2) + 24)
 
 {-| Draw game maximized into the window. -}
