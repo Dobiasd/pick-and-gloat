@@ -274,8 +274,8 @@ viewDone model =
 drawHints : (Icon, Icon) -> Form
 drawHints (hint0, hint1) =
   group [
-      drawIcon hint0 False |> rotate (degrees 90) |> move (0, -250)
-    , drawIcon hint1 False |> rotate (degrees 90) |> move (0, 250)
+      drawIcon hint0 |> move (0, -250)
+    , drawIcon hint1 |> move (0, 250)
   ]
 
 drawIcons : List Icon -> Int -> List Form
@@ -292,7 +292,7 @@ iconSize = 210
 drawClickableIcon : Icon -> Int -> Int -> Form
 drawClickableIcon icon playerNum iconNum =
   let
-    drawnForm = drawIcon icon (playerNum > 0)
+    drawnForm = drawIcon icon
     elem = collage iconSize iconSize [drawnForm]
   in
     elem
@@ -309,13 +309,10 @@ drawIconBorder =
   in
     rect (toFloat iconSize) (toFloat iconSize) |> outlined grayLSWide
 
-drawIcon : Icon -> Bool -> Form
-drawIcon {color, shape} rot180 =
-  let
-    angle = if rot180 then 180 else 0
-  in
-    group [ drawIconBorder
-          , toRGB color |> toDrawFunction shape |> rotate (degrees angle) ]
+drawIcon : Icon -> Form
+drawIcon {color, shape} =
+  group [ drawIconBorder
+        , toRGB color |> toDrawFunction shape ]
 
 toRGB : Color -> Color.Color
 toRGB color =
@@ -371,6 +368,7 @@ drawTriangle color =
       ]
   in
     filled color (Graphics.Collage.polygon points)
+    |> rotate (degrees 90)
 
 -- http://mathworld.wolfram.com/Pentagon.html
 drawStar : Color.Color -> Form
@@ -391,6 +389,7 @@ drawStar color =
       ]
   in
     filled color (Graphics.Collage.polygon points)
+    |> rotate (degrees 90)
 
 actionSigReady1Click : Signal Action
 actionSigReady1Click = Signal.sampleOn p1ReadyIconClick.signal (Signal.constant P1Ready)
@@ -444,7 +443,7 @@ toColoredSizedText col s = Text.fromString >> Text.height s >> Text.color col
 
 viewCopyright : Int -> Form
 viewCopyright winHeight =
-  toColoredSizedText Color.charcoal 12
+  toColoredSizedText Color.charcoal 14
     "Copyright © 2016 Tobias Hermann. All rights reserved."
   |> toForm
   |> moveY ((toFloat -winHeight / 2) + 24)
@@ -471,8 +470,8 @@ displayFullScreen (w,hWithoutAds) game =
 main = Signal.map2 displayFullScreen windowDimensions gameState
 
 -- todo: up to 9 points
--- todo: teile nicht rotieren, immer einfach aufrecht
 -- todo: besserer name fuers spiel
 -- todo: als android-app: http://developer.android.com/guide/webapps/index.html
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
+-- todo: green check mark oder red x anzeigen wenn einer gedrueckt hat
