@@ -8,7 +8,6 @@ import Graphics.Input
 import Random
 import Text
 import Time
-import Touch
 
 port windowWidth : Signal Int
 port windowHeight : Signal Int
@@ -256,14 +255,14 @@ view model =
 viewIntro : Model -> Form
 viewIntro model =
   group [
-      rect 1200 280
+      rect 1200 340
       |> filled Color.lightGray
     ,
       "Tab to start.\n\nCompete with a friend at one smartphone/tablet face to face.\nYou will be shown two hint icons in the middle that exclude colors and shapes.\nTab the one icon not excluded by the hints on your side.\nThe quicker player scores."
       |> toColoredSizedText Color.darkCharcoal 32
   ]
   |> singletonList
-  |> collage 1200 280
+  |> collage 1200 340
   |> Graphics.Input.clickable
       (Signal.message introCloseClick.address ())
   |> toForm
@@ -570,3 +569,4 @@ main = Signal.map2 displayFullScreen windowDimensions gameState
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
 -- todo: green check mark oder red x anzeigen wenn einer gedrueckt hat
+-- todo: tap-on-down benutzen, auch bei demoscene
