@@ -275,6 +275,7 @@ viewPauseOrDone model =
       Pause p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (False, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
       Done p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (True, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
       otherwise -> Debug.crash "viewPauseOrDone"
+    -- changing viewReadyButton and its calls can lead to the elements not being clickable any more
     viewReadyButton mailbox col =
       rect 400 100 |> filled col
           |> \x -> [x, toColoredSizedText Color.darkCharcoal 48 "Tab when ready"]
@@ -292,7 +293,7 @@ viewPauseOrDone model =
       |> rotate (degrees -90)
     tapWasCorrect = lastPointTo == whoTapped
     tabIconBorderColor = if tapWasCorrect then Color.green else Color.red
-    tapBorder = drawIconBorder tabIconBorderColor
+    tapBorder = drawIconBorder 24 tabIconBorderColor
       |> moveX (gameIconOffsetX * (if whoTapped == 2 then 1 else -1))
       |> moveY (iconPosY whatWasTapped)
     (winText, looseText) =
@@ -395,18 +396,17 @@ drawClickableIcon icon playerNum iconNum =
       (Signal.message gameIconClick.address (playerNum, iconNum))
     |> toForm
 
-drawIconBorder : Color.Color -> Form
-drawIconBorder color =
+drawIconBorder : Float -> Color.Color -> Form
+drawIconBorder w color =
   let
-    width = 8
     lsGray = solid color
-    grayLSWide = { lsGray | width = width, join = Smooth, cap = Round }
+    grayLSWide = { lsGray | width = w, join = Smooth, cap = Round }
   in
     rect (toFloat iconSize) (toFloat iconSize) |> outlined grayLSWide
 
 drawIcon : Icon -> Form
 drawIcon {color, shape} =
-  group [ drawIconBorder Color.charcoal
+  group [ drawIconBorder 8 Color.charcoal
         , toRGB color |> toDrawFunction shape ]
 
 toRGB : Color -> Color.Color
@@ -563,7 +563,6 @@ displayFullScreen (w,hWithoutAds) game =
 
 main = Signal.map2 displayFullScreen windowDimensions gameState
 
--- todo: up to 9 points
 -- todo: besserer name fuers spiel
 -- todo: als android-app: http://developer.android.com/guide/webapps/index.html
 -- todo: hard mode mit mehr dingern
