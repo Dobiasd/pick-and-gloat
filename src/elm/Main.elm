@@ -301,8 +301,10 @@ viewPauseOrDone model =
         ( toColoredSizedText Color.green 204 "You win!"
         , toColoredSizedText Color.red 204 "You loose!" )
       else
-        ( toColoredSizedText Color.green 96 "You score!"
-        , toColoredSizedText Color.red 96 "" )
+        ( toColoredSizedText Color.green 96
+          (if lastPointTo == whoTapped then "Correct! You Score." else "You score.")
+        , toColoredSizedText Color.red 96
+          (if lastPointTo == whoTapped then "Too slow!" else "Wrong!") )
     (p1TextRaw, p2TextRaw) = if lastPointTo == 1 then (winText, looseText) else (looseText, winText)
     p1Text = p1TextRaw |> rotate (degrees -90) |> moveX -500
     p2Text = p2TextRaw |> rotate (degrees  90) |> moveX  500
@@ -567,5 +569,4 @@ main = Signal.map2 displayFullScreen windowDimensions gameState
 -- todo: als android-app: http://developer.android.com/guide/webapps/index.html
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
--- todo: green check mark oder red x anzeigen wenn einer gedrueckt hat
--- todo: tap-on-down benutzen, auch bei demoscene
+-- todo: "Tab when ready." does not show on android browser.
