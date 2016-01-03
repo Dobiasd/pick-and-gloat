@@ -9,6 +9,10 @@ import Random
 import Text
 import Time
 
+import Html
+import Html.Events
+import Json.Decode
+
 port windowWidth : Signal Int
 port windowHeight : Signal Int
 
@@ -241,6 +245,28 @@ introCloseClick = Signal.mailbox ()
 
 -- VIEW
 
+-- https://github.com/igrep/elm-touchmove-mousemove-sample
+onBoth : List String -> Signal.Address a -> a -> List Html.Attribute
+onBoth events a x =
+  List.map (\event -> messageOn event a x) events
+
+-- NOTE: Copied from Html.Events. Why isn't it exported...?
+messageOn : String -> Signal.Address a -> a -> Html.Attribute
+messageOn name addr msg =
+  Html.Events.on name Json.Decode.value (\_ -> Signal.message addr msg)
+
+-- https://groups.google.com/forum/#!topic/elm-discuss/eiOIhAi24wk
+tappable : Signal.Address a -> a -> Graphics.Element.Element -> Graphics.Element.Element
+tappable address msg elem =
+  Html.div
+    --[Html.Events.onMouseDown address msg]
+    --[Html.Events.on "touchstart" Json.Decode.value (\_ -> Signal.message address ())]
+    (onBoth ["mousedown", "touchstart"] address msg)
+    [Html.fromElement elem]
+  |> Html.toElement
+       (Graphics.Element.widthOf elem)
+       (Graphics.Element.heightOf elem)
+
 {-| The game field extends from -1000 to +1000 in x and y coordinates. -}
 (gameWidth,gameHeight) = (2400,1200)
 
@@ -255,16 +281,15 @@ view model =
 viewIntro : Model -> Form
 viewIntro model =
   group [
-      rect 1200 340
+      rect 1400 340
       |> filled Color.lightGray
     ,
-      "Tab to start.\n\nCompete with a friend at one smartphone/tablet face to face.\nYou will be shown two hint icons in the middle that exclude colors and shapes.\nTab the one icon not excluded by the hints on your side.\nThe quicker player scores."
+      "Tab to start.\n\nPlay face to face against a friend on one smartphone/tablet.\nYou will be shown two hint icons in the middle that exclude colors and shapes.\nTab the one icon not excluded by the hints on your side.\nThe quicker player scores."
       |> toColoredSizedText Color.darkCharcoal 32
   ]
   |> singletonList
-  |> collage 1200 340
-  |> Graphics.Input.clickable
-      (Signal.message introCloseClick.address ())
+  |> collage 1400 340
+  |> tappable introCloseClick.address ()
   |> toForm
 
 viewPauseOrDone : Model -> Form
@@ -275,14 +300,17 @@ viewPauseOrDone model =
       Pause p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (False, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
       Done p1Ready p2Ready lastPointTo whoTapped whatWasTapped -> (True, p1Ready, p2Ready, lastPointTo, whoTapped, whatWasTapped)
       otherwise -> Debug.crash "viewPauseOrDone"
-    -- changing viewReadyButton and its calls can lead to the elements not being clickable any more
     viewReadyButton mailbox col =
-      rect 400 100 |> filled col
-          |> \x -> [x, toColoredSizedText Color.darkCharcoal 48 "Tab when ready"]
-          |> collage 400 100
-          |> Graphics.Input.clickable
-            (Signal.message mailbox.address ())
-          |> toForm
+          let
+            lsCol = solid col
+            lsFull = { lsCol | width = 16 }
+          in
+            [ rect 460 100 |> outlined lsFull
+            , toColoredSizedText col 48
+                (if isDone then "Tab to restart" else "Tab when ready")]
+            |> collage 460 100
+            |> tappable mailbox.address ()
+            |> toForm
     readyIcon1 =
       viewReadyButton p1ReadyIconClick
         (if p1Ready then Color.darkCharcoal else Color.yellow)
@@ -394,8 +422,7 @@ drawClickableIcon icon playerNum iconNum =
     elem = collage iconSize iconSize [drawnForm]
   in
     elem
-    |> Graphics.Input.clickable
-      (Signal.message gameIconClick.address (playerNum, iconNum))
+    |> tappable gameIconClick.address (playerNum, iconNum)
     |> toForm
 
 drawIconBorder : Float -> Color.Color -> Form
@@ -569,4 +596,3 @@ main = Signal.map2 displayFullScreen windowDimensions gameState
 -- todo: als android-app: http://developer.android.com/guide/webapps/index.html
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
--- todo: "Tab when ready." does not show on android browser.
