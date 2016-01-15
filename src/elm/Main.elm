@@ -739,8 +739,6 @@ drawIconBorder scale w color =
         grayLSWide =
             { lsGray
                 | width = (scale * w)
-                , join = Smooth
-                , cap = Round
             }
     in
         rect (toFloat (iconSize scale)) (toFloat (iconSize scale)) |> outlined grayLSWide
@@ -997,5 +995,3 @@ main =
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
 -- todo: im intro besser erklaeren
--- todo: alles performancedoofe weg (smooth rects und so)
--- todo: scaling raus und alles hier drin schon machen
