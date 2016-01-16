@@ -291,11 +291,14 @@ update { action, seed } model =
                         else
                             Pause True False pointTo 1 iconNum
                 in
-                    { model
-                        | state = state'
-                        , points1 = points1'
-                        , points2 = points2'
-                    }
+                    if model.state == Running then
+                        { model
+                            | state = state'
+                            , points1 = points1'
+                            , points2 = points2'
+                        }
+                    else
+                        model
 
             P2Tab iconNum ->
                 let
@@ -331,11 +334,14 @@ update { action, seed } model =
                         else
                             Pause True False pointTo 2 iconNum
                 in
-                    { model
-                        | state = state'
-                        , points1 = points1'
-                        , points2 = points2'
-                    }
+                    if model.state == Running then
+                        { model
+                            | state = state'
+                            , points1 = points1'
+                            , points2 = points2'
+                        }
+                    else
+                        model
 
             P1Ready ->
                 case model.state of
@@ -995,3 +1001,4 @@ main =
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
 -- todo: im intro besser erklaeren
+-- todo: touches nehmen, und die starts angucken statt hit events
