@@ -447,9 +447,9 @@ tappable : Signal.Address a -> a -> Graphics.Element.Element -> Graphics.Element
 tappable address msg elem =
     Html.div
         --player gets two points if we use onBoth with both events.
-        [ Html.Events.onMouseDown address msg ]
-        --[Html.Events.on "touchstart" Json.Decode.value (\_ -> Signal.message address ())]
-        --(onBoth ["mousedown", "touchstart"] address msg)
+        --[ Html.Events.onMouseDown address msg ]
+        --[ Html.Events.on "touchmove" Json.Decode.value (\_ -> Signal.message address msg) ]
+        (onBoth [ "mousedown", "touchstart" ] address msg)
         [ Html.fromElement elem ]
         |> Html.toElement
             (Graphics.Element.widthOf elem)
