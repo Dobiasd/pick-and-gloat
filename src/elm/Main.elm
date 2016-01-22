@@ -601,6 +601,7 @@ viewPauseOrDone scale model =
         p2Text = p2TextRaw |> rotate (degrees 90) |> moveX (scale * 500)
     in
         viewGameIcons scale model
+            ++ grayGameIconOverlay scale
             ++ [ if whoTapped < 1 then
                     dummyForm
                  else
@@ -622,6 +623,22 @@ viewPauseOrDone scale model =
                , readyIcon2 |> moveX (scale * (-740))
                ]
             |> group
+
+
+grayGameIconOverlay : Float -> List Form
+grayGameIconOverlay scale =
+    let
+        overlayWidth = scale * 300
+
+        offsetX = (scale * toFloat gameWidth) / 2 - overlayWidth / 2
+
+        oneBar =
+            rect overlayWidth gameHeight
+                |> filled (Color.rgba 127 127 127 0.5)
+    in
+        [ oneBar |> moveX offsetX
+        , oneBar |> moveX -offsetX
+        ]
 
 
 dummyForm : Form
