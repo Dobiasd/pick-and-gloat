@@ -228,8 +228,8 @@ introModel =
 
 type Action
     = IntroClose
-    | P1Tab Int
-    | P2Tab Int
+    | P1Tap Int
+    | P2Tap Int
     | P1Ready
     | P2Ready
 
@@ -257,7 +257,7 @@ update { action, seed } model =
                 , points2 = 0
                 }
 
-            P1Tab iconNum ->
+            P1Tap iconNum ->
                 let
                     correct = nthElement iconNum model.icons == model.icon
 
@@ -300,7 +300,7 @@ update { action, seed } model =
                     else
                         model
 
-            P2Tab iconNum ->
+            P2Tap iconNum ->
                 let
                     correct = nthElement iconNum model.icons == model.icon
 
@@ -481,7 +481,7 @@ viewIntro scale model =
     group
         [ rect (scale * toFloat gameWidth) (scale * 470)
             |> filled Color.lightGray
-        , "Tab to start"
+        , "Tap to start"
             |> toColoredSizedText Color.darkCharcoal (scale * 120)
             |> moveX (scale * -230)
         , viewExplanation scale model
@@ -636,9 +636,9 @@ viewPauseOrDone scale model =
                     col
                     (scale * 64)
                     (if isDone then
-                        "Tab to restart"
+                        "Tap to restart"
                      else
-                        "Tab when ready"
+                        "Tap when ready"
                     )
                 ]
                     |> collage (scale * 610 |> round) (scale * 170 |> round)
@@ -667,14 +667,14 @@ viewPauseOrDone scale model =
 
         tapWasCorrect = lastPointTo == whoTapped
 
-        tabIconBorderColor =
+        tapIconBorderColor =
             if tapWasCorrect then
                 Color.green
             else
                 Color.red
 
         tapBorder =
-            drawIconBorder scale 24 tabIconBorderColor
+            drawIconBorder scale 24 tapIconBorderColor
                 |> moveX
                     (gameIconOffsetX scale
                         * (if whoTapped == 2 then
@@ -1044,9 +1044,9 @@ actionSigIconClick =
     let
         f ( playerNum, iconNum ) =
             if playerNum == 0 then
-                P1Tab iconNum
+                P1Tap iconNum
             else
-                P2Tab iconNum
+                P2Tap iconNum
     in
         Signal.map f gameIconClick.signal
 
