@@ -482,7 +482,7 @@ viewIntro scale model =
         [ rect (scale * toFloat gameWidth) (scale * 470)
             |> filled Color.lightGray
         , "Tap to start"
-            |> toColoredSizedText Color.darkCharcoal (scale * 120)
+            |> toColoredSizedText Color.darkCharcoal (scale * 105)
             |> moveX (scale * -230)
         , viewExplanation scale model
         ]
@@ -634,7 +634,7 @@ viewPauseOrDone scale model =
                 [ rect (scale * 610) (scale * 170) |> outlined lsFull
                 , toColoredSizedText
                     col
-                    (scale * 64)
+                    (scale * 58)
                     (if isDone then
                         "Tap to restart"
                      else
@@ -689,17 +689,17 @@ viewPauseOrDone scale model =
             if isDone then
                 ( group
                     [ rect (scale * 1060) (scale * 240) |> filled Color.white
-                    , toColoredSizedText Color.green (scale * 230) "You win!"
+                    , toColoredSizedText Color.green (scale * 200) "You win!"
                     ]
                 , group
                     [ rect (scale * 1060) (scale * 240) |> filled Color.black
-                    , toColoredSizedText Color.red (scale * 230) "You loose!"
+                    , toColoredSizedText Color.red (scale * 200) "You loose!"
                     ]
                 )
             else
                 ( toColoredSizedText
                     Color.green
-                    (scale * 140)
+                    (scale * 110)
                     (if lastPointTo == whoTapped then
                         "Correct! You Score."
                      else
@@ -707,7 +707,7 @@ viewPauseOrDone scale model =
                     )
                 , toColoredSizedText
                     Color.red
-                    (scale * 140)
+                    (scale * 110)
                     (if lastPointTo == whoTapped then
                         "Too slow!"
                      else
