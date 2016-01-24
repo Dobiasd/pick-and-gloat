@@ -470,7 +470,7 @@ view scale model =
             viewPause scale model
 
         Running ->
-            viewRunning scale model
+            viewRunning True scale model
 
         Done _ _ _ _ _ ->
             viewDone scale model
@@ -518,7 +518,7 @@ viewSmartphone scale model =
         , filled
             Color.darkCharcoal
             (Graphics.Collage.rect (scale * 120) (scale * 210))
-        , viewRunning (scale * 8.5e-2) model
+        , viewRunning False (scale * 8.5e-2) model
             |> rotate (degrees 90)
         ]
 
@@ -802,12 +802,15 @@ viewPoints scale model =
         row1 ++ row2 |> group
 
 
-viewRunning : Float -> Model -> Form
-viewRunning scale model =
+viewRunning : Bool -> Float -> Model -> Form
+viewRunning showPoints scale model =
     let
         forms =
             [ drawHints scale model.hintIcons
-            , viewPoints scale model
+            , if showPoints then
+                viewPoints scale model
+              else
+                dummyForm
             ]
                 ++ viewGameIcons scale model
     in
