@@ -1,1 +1,1 @@
-# [Colored Shape Snatch](http://www.editgym.com/colored-shape-snatch/)
+# [Pick And Gloat](http://www.editgym.com/pick-and-gloat/)

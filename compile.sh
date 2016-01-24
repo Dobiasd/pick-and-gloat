@@ -5,15 +5,15 @@ rm -r build
 mkdir build
 mkdir build/js
 
-elm-make src/elm/Main.elm --output build/js/colored_shape_snatch_uncompressed.js
+elm-make src/elm/Main.elm --output build/js/pick_and_gloat_uncompressed.js
 
 if [ $? -eq 0 ]
 then
 
   cp ./src/.htaccess ./build
 
-  uglifyjs build/js/colored_shape_snatch_uncompressed.js > build/js/colored_shape_snatch.js
-  rm build/js/colored_shape_snatch_uncompressed.js
+  uglifyjs build/js/pick_and_gloat_uncompressed.js > build/js/pick_and_gloat.js
+  rm build/js/pick_and_gloat_uncompressed.js
 
   cp ./src/index.html ./build/index.html
   uglifyjs ./src/htmlmain.js > ./build/js/htmlmain.js
