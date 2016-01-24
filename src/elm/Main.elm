@@ -497,11 +497,11 @@ viewIntro scale model =
 viewExplanation : Float -> Model -> Form
 viewExplanation scale model =
     group
-        [ viewSmartphone (1.5 * scale) model
+        [ viewSmartphone True (1.5 * scale) model
         , viewPerson (1.5 * scale) |> moveY (scale * -430)
         , viewPerson (1.5 * scale) |> rotate (degrees 180) |> moveY (scale * 430)
         , group
-            [ viewSmartphone (8.1 * scale) model
+            [ viewSmartphone False (8.1 * scale) model
             , viewSmartphoneOverlay (8.1 * scale)
             ]
             |> move ( scale * 1340, scale * 430 )
@@ -509,8 +509,8 @@ viewExplanation scale model =
         |> moveX (scale * -700)
 
 
-viewSmartphone : Float -> Model -> Form
-viewSmartphone scale model =
+viewSmartphone : Bool -> Float -> Model -> Form
+viewSmartphone showPoints scale model =
     group
         [ filled
             Color.black
@@ -518,7 +518,7 @@ viewSmartphone scale model =
         , filled
             Color.darkCharcoal
             (Graphics.Collage.rect (scale * 120) (scale * 210))
-        , viewRunning False (scale * 8.5e-2) model
+        , viewRunning showPoints (scale * 8.5e-2) model
             |> rotate (degrees 90)
         ]
 
