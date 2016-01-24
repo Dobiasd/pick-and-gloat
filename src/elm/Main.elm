@@ -1143,4 +1143,3 @@ main =
 -- todo: als android-app: http://developer.android.com/guide/webapps/index.html
 -- todo: hard mode mit mehr dingern
 -- todo: andere shapes verwenden, damit es nicht zu gleich ist
--- todo: im intro besser erklaeren
