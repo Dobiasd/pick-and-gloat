@@ -209,14 +209,14 @@ introModel : Model
 introModel =
     { state = Intro
     , icons =
-        [ Icon Yellow Circle
-        , Icon Blue X
+        [ Icon Blue X
         , Icon Orange Square
+        , Icon Yellow Circle
         , Icon Green Triangle
         , Icon Red Star
         ]
     , icon = Icon Yellow Circle
-    , hintIcons = ( Icon Blue Square, Icon Green Star )
+    , hintIcons = ( Icon Green Star, Icon Blue Square )
     , points1 = 0
     , points2 = 0
     }
@@ -456,8 +456,6 @@ tappable address msg elem =
             (Graphics.Element.heightOf elem)
 
 
-{-| The game field extends from -1000 to +1000 in x and y coordinates.
--}
 ( gameWidth, gameHeight ) =
     ( 2400, 1200 )
 
@@ -481,15 +479,136 @@ view scale model =
 viewIntro : Float -> Model -> Form
 viewIntro scale model =
     group
-        [ rect (scale * 1400) (scale * 340)
+        [ rect (scale * toFloat gameWidth) (scale * 470)
             |> filled Color.lightGray
-        , "Tab to start.\n\nPlay face to face against a friend on one smartphone/tablet.\nYou will be shown two hint icons in the middle that exclude colors and shapes.\nTab the one icon not excluded by the hints on your side.\nThe quicker player scores."
-            |> toColoredSizedText Color.darkCharcoal (scale * 32)
+        , "Tab to start"
+            |> toColoredSizedText Color.darkCharcoal (scale * 120)
+            |> moveX (scale * -230)
+        , viewExplanation scale model
         ]
         |> singletonList
-        |> collage (scale * 1400 |> round) (scale * 340 |> round)
+        |> collage
+            (scale * toFloat gameWidth |> round)
+            (scale * toFloat gameHeight |> round)
         |> tappable introCloseClick.address ()
         |> toForm
+
+
+viewExplanation : Float -> Model -> Form
+viewExplanation scale model =
+    group
+        [ viewSmartphone (1.5 * scale) model
+        , viewPerson (1.5 * scale) |> moveY (scale * -430)
+        , viewPerson (1.5 * scale) |> rotate (degrees 180) |> moveY (scale * 430)
+        , group
+            [ viewSmartphone (8.1 * scale) model
+            , viewSmartphoneOverlay (8.1 * scale)
+            ]
+            |> move ( scale * 1340, scale * 430 )
+        ]
+        |> moveX (scale * -700)
+
+
+viewSmartphone : Float -> Model -> Form
+viewSmartphone scale model =
+    group
+        [ filled
+            Color.black
+            (Graphics.Collage.rect (scale * 130) (scale * 220))
+        , filled
+            Color.darkCharcoal
+            (Graphics.Collage.rect (scale * 120) (scale * 210))
+        , viewRunning (scale * 8.5e-2) model
+            |> rotate (degrees 90)
+        ]
+
+
+drawExcludeLine : Float -> ( Float, Float ) -> ( Float, Float ) -> Form
+drawExcludeLine scale ( x1, y1 ) ( x2, y2 ) =
+    let
+        lsCol1 = solid Color.black
+
+        lsFull1 = { lsCol1 | width = (scale * 3.0) }
+
+        lsCol2 = solid Color.red
+
+        lsFull2 = { lsCol2 | width = (scale * 2) }
+    in
+        group
+            [ path [ ( scale * x1, scale * y1 ), ( scale * x2, scale * y2 ) ]
+                |> traced lsFull1
+            , path [ ( scale * x1, scale * y1 ), ( scale * x2, scale * y2 ) ]
+                |> traced lsFull2
+            ]
+
+
+drawCheckMark : Float -> Form
+drawCheckMark scale =
+    let
+        lsCol = solid Color.darkGreen
+
+        lsFull = { lsCol | width = (scale * 3.0) }
+    in
+        path
+            [ ( scale * -7, scale * 0 )
+            , ( scale * 0, scale * -7 )
+            , ( scale * 7, scale * 7 )
+            ]
+            |> traced lsFull
+
+
+viewSmartphoneOverlay : Float -> Form
+viewSmartphoneOverlay scale =
+    let
+        drawLine = drawExcludeLine scale
+    in
+        group
+            [ drawLine ( -39, -90 ) ( -24, 0 )
+            , drawLine ( -20, -90 ) ( -19, 0 )
+            , drawLine ( 39, -90 ) ( 24, 0 )
+            , drawLine ( 20, -90 ) ( 19, 0 )
+            , drawCheckMark scale |> moveY (scale * -68)
+            ]
+
+
+viewPerson : Float -> Form
+viewPerson scale =
+    let
+        head = filled Color.lightBlue (Graphics.Collage.circle (scale * 100))
+
+        leftUpperArm =
+            filled
+                Color.lightBlue
+                (Graphics.Collage.rect (scale * 200) (scale * 60))
+                |> move ( scale * -140, scale * -14 )
+
+        leftLowerArm =
+            filled
+                Color.lightBlue
+                (Graphics.Collage.rect (scale * 60) (scale * 200))
+                |> move ( scale * -210, scale * 60 )
+
+        rightUpperArm =
+            filled
+                Color.lightBlue
+                (Graphics.Collage.rect (scale * 200) (scale * 60))
+                |> rotate (degrees 45)
+                |> move ( scale * 140, scale * 70 )
+
+        rightLowerArm =
+            filled
+                Color.lightBlue
+                (Graphics.Collage.rect (scale * 60) (scale * 200))
+                |> rotate (degrees 45)
+                |> move ( scale * 140, scale * 170 )
+    in
+        group
+            [ head
+            , leftUpperArm
+            , leftLowerArm
+            , rightUpperArm
+            , rightLowerArm
+            ]
 
 
 viewPauseOrDone : Float -> Model -> Form
@@ -512,17 +631,17 @@ viewPauseOrDone scale model =
 
                 lsFull = { lsCol | width = (scale * 16) }
             in
-                [ rect (scale * 460) (scale * 100) |> outlined lsFull
+                [ rect (scale * 610) (scale * 170) |> outlined lsFull
                 , toColoredSizedText
                     col
-                    (scale * 48)
+                    (scale * 64)
                     (if isDone then
                         "Tab to restart"
                      else
                         "Tab when ready"
                     )
                 ]
-                    |> collage (scale * 460 |> round) (scale * 100 |> round)
+                    |> collage (scale * 610 |> round) (scale * 170 |> round)
                     |> tappable mailbox.address ()
                     |> toForm
 
@@ -568,13 +687,19 @@ viewPauseOrDone scale model =
 
         ( winText, looseText ) =
             if isDone then
-                ( toColoredSizedText Color.green (scale * 204) "You win!"
-                , toColoredSizedText Color.red (scale * 204) "You loose!"
+                ( group
+                    [ rect (scale * 1060) (scale * 240) |> filled Color.white
+                    , toColoredSizedText Color.green (scale * 230) "You win!"
+                    ]
+                , group
+                    [ rect (scale * 1060) (scale * 240) |> filled Color.black
+                    , toColoredSizedText Color.red (scale * 230) "You loose!"
+                    ]
                 )
             else
                 ( toColoredSizedText
                     Color.green
-                    (scale * 96)
+                    (scale * 140)
                     (if lastPointTo == whoTapped then
                         "Correct! You Score."
                      else
@@ -582,7 +707,7 @@ viewPauseOrDone scale model =
                     )
                 , toColoredSizedText
                     Color.red
-                    (scale * 96)
+                    (scale * 140)
                     (if lastPointTo == whoTapped then
                         "Too slow!"
                      else
@@ -596,9 +721,9 @@ viewPauseOrDone scale model =
             else
                 ( looseText, winText )
 
-        p1Text = p1TextRaw |> rotate (degrees -90) |> moveX (scale * (-500))
+        p1Text = p1TextRaw |> rotate (degrees -90) |> moveX (scale * (-480))
 
-        p2Text = p2TextRaw |> rotate (degrees 90) |> moveX (scale * 500)
+        p2Text = p2TextRaw |> rotate (degrees 90) |> moveX (scale * 480)
     in
         viewGameIcons scale model
             ++ grayGameIconOverlay scale
@@ -698,10 +823,10 @@ viewGameIcons : Float -> Model -> List Form
 viewGameIcons scale model =
     List.map
         (moveX (-(gameIconOffsetX scale)))
-        (drawIcons scale model.icons 0)
+        (drawIcons -90 scale model.icons 0)
         ++ List.map
             (moveX (gameIconOffsetX scale))
-            (drawIcons scale model.icons 1)
+            (drawIcons 90 scale model.icons 1)
 
 
 viewDone : Float -> Model -> Form
@@ -727,12 +852,13 @@ iconPosY scale n =
     (scale * 460) - (scale * 230) * (toFloat n)
 
 
-drawIcons : Float -> List Icon -> Int -> List Form
-drawIcons scale icons playerNum =
+drawIcons : Float -> Float -> List Icon -> Int -> List Form
+drawIcons rot scale icons playerNum =
     let
         nthIcon n =
             drawClickableIcon scale (nthElement n icons) playerNum n
                 |> moveY (iconPosY scale n)
+                |> rotate (degrees rot)
     in
         List.map nthIcon [0..4]
 
@@ -969,13 +1095,13 @@ toColoredSizedText col s =
         >> toForm
 
 
-viewCopyright : Float -> Int -> Form
-viewCopyright scale winHeight =
+viewCopyright : Float -> Form
+viewCopyright scale =
     toColoredSizedText
         Color.charcoal
-        (scale * 22)
+        (scale * 32)
         "Copyright © 2016 Tobias Hermann. All rights reserved."
-        |> moveY ((toFloat -winHeight / 2) + 24)
+        |> moveY (scale * -550)
 
 
 {-| Draw game maximized into the window.
@@ -1002,8 +1128,8 @@ displayFullScreen ( w, hWithoutAds ) game =
                 h
                 [ rect (toFloat w) (toFloat h)
                     |> filled Color.darkCharcoal
-                , viewCopyright factor h
                 , view factor game
+                , viewCopyright factor
                 ]
             ]
 
