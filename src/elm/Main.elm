@@ -506,8 +506,8 @@ viewExplanation scale model =
             , group
                 [ filled
                     (Color.rgba 0 0 0 0.5)
-                    (Graphics.Collage.rect (scale * 520) (scale * 180))
-                , toColoredSizedText Color.lightGray (scale * 32) "Pick the small icon\nwith unique shape and color\nin regards to the two big icons."
+                    (Graphics.Collage.rect (scale * 920) (scale * 300))
+                , toColoredSizedText Color.lightGray (scale * 64) "Pick the small icon\nwith unique shape and color\nin regards to the two big icons."
                 ]
                 |> moveY (scale * -300)
             ]
