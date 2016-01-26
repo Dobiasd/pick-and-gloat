@@ -1,1 +1,1 @@
-# [Pick And Gloat](http://www.editgym.com/pick-and-gloat/)
+# [Pick and Gloat](http://www.editgym.com/pick-and-gloat/)

@@ -503,6 +503,13 @@ viewExplanation scale model =
         , group
             [ viewSmartphone False (8.1 * scale) model
             , viewSmartphoneOverlay (8.1 * scale)
+            , group
+                [ filled
+                    (Color.rgba 0 0 0 0.5)
+                    (Graphics.Collage.rect (scale * 520) (scale * 180))
+                , toColoredSizedText Color.lightGray (scale * 32) "Pick the small icon\nwith unique shape and color\nin regards to the two big icons."
+                ]
+                |> moveY (scale * -300)
             ]
             |> move ( scale * 1340, scale * 430 )
         ]
@@ -727,7 +734,8 @@ viewPauseOrDone scale model =
     in
         viewGameIcons scale model
             ++ grayGameIconOverlay scale
-            ++ [ if whoTapped < 1 then
+            ++ [ drawGameName scale
+               , if whoTapped < 1 then
                     dummyForm
                  else
                     tapBorder
@@ -748,6 +756,11 @@ viewPauseOrDone scale model =
                , readyIcon2 |> moveX (scale * (-740))
                ]
             |> group
+
+
+drawGameName : Float -> Form
+drawGameName scale =
+    toColoredSizedText Color.darkGray (scale * 58) "Pick and Gloat"
 
 
 grayGameIconOverlay : Float -> List Form
@@ -807,6 +820,7 @@ viewRunning showPoints scale model =
     let
         forms =
             [ drawHints scale model.hintIcons
+            , drawGameName scale
             , if showPoints then
                 viewPoints scale model
               else
@@ -845,8 +859,8 @@ viewPause scale model =
 drawHints : Float -> ( Icon, Icon ) -> Form
 drawHints scale ( hint0, hint1 ) =
     group
-        [ drawIcon scale hint0 |> move ( 0, scale * (-250) )
-        , drawIcon scale hint1 |> move ( 0, scale * 250 )
+        [ drawIcon (1.7 * scale) hint0 |> move ( 0, scale * (-250) )
+        , drawIcon (1.7 * scale) hint1 |> move ( 0, scale * 250 )
         ]
 
 
